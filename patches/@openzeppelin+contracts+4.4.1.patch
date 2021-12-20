@@ -1,0 +1,13 @@
+diff --git a/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol b/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
+index 99e455f..05889c9 100644
+--- a/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
++++ b/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
+@@ -33,7 +33,7 @@ import "../../utils/Context.sol";
+  * allowances. See {IERC20-approve}.
+  */
+ contract ERC20 is Context, IERC20, IERC20Metadata {
+-    mapping(address => uint256) private _balances;
++    mapping(address => uint256) internal _balances;
+ 
+     mapping(address => mapping(address => uint256)) private _allowances;
+ 

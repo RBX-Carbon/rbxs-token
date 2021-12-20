@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.5.0;
+pragma solidity ^0.8.10;
 
 interface IUniswapV2Factory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
@@ -19,7 +19,7 @@ interface IUniswapV2Factory {
 }
 
 
-pragma solidity >=0.5.0;
+
 
 interface IUniswapV2Pair {
     event Approval(address indexed owner, address indexed spender, uint value);
@@ -72,7 +72,7 @@ interface IUniswapV2Pair {
     function initialize(address, address) external;
 }
 
-// pragma solidity >=0.6.2;
+
 
 interface IUniswapV2Router01 {
     function factory() external pure returns (address);
@@ -170,7 +170,7 @@ interface IUniswapV2Router01 {
 
 
 
-// pragma solidity >=0.6.2;
+
 
 interface IUniswapV2Router02 is IUniswapV2Router01 {
     function removeLiquidityETHSupportingFeeOnTransferTokens(
