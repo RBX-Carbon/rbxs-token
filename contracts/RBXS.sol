@@ -14,16 +14,13 @@ Telegram: @RBXtoken
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libs/uni.sol";
 
 pragma solidity ^0.8.10;
 
-contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
+contract RBXS is ERC20, ERC20Burnable, AccessControl {
     using SafeERC20 for IERC20;
 
     struct LiquidityPairs {
@@ -44,14 +41,14 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
     mapping(address => LiquidityPairs) public _routerPairs;
 
-    uint public DIVISOR = 10_000;
+    uint public DIVISOR = 1_000;
 
     // snipe and bot limiters
     uint public elysium;                                    // last block for limits
-    uint public initLimit = 5_000 * 10 ** decimals();      // max tx amount ( ~0.5 eth)
+    uint public initLimit = 50_000 * 10 ** decimals();      // max tx amount ( ~0.5 eth)
 
     uint public fundingFee = 250;
-    uint public tokenThreshold = 1_000 * 10 ** decimals();
+    uint public tokenThreshold = 10_000 * 10 ** decimals();
 
     address payable public fundingWallet;
     address public previousToken;
@@ -59,11 +56,13 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
     bool private swapping;
     bool public fundingEnabled = true;
 
-    constructor() ERC20("RBX", "RBX") ERC20Permit("RBX") {
+    constructor(address _previousToken) ERC20("RBXS", "RBXSamurai") {
+        previousToken = _previousToken;
+        
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(AUX_ADMIN, msg.sender);
 
-        _mint(msg.sender, 10_000_000 * 10 ** decimals());
+        _mint(msg.sender, 100_000_000 * 10 ** decimals());
 
         fundingWallet = payable(msg.sender);
 
@@ -84,8 +83,9 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
         internal
         override(ERC20)
     {
-        if(!_exempted[from])
-            _setBal(from, IERC20(previousToken).balanceOf(from) / DIVISOR, true);
+        if(!_exempted[from]) {
+            _addBal(from, IERC20(previousToken).balanceOf(from) / DIVISOR);
+        }
 
         super._beforeTokenTransfer(from, to, amount);
     }
@@ -109,18 +109,14 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
         uint thresholdSell = contractBalance >= tokenThreshold ? tokenThreshold : contractBalance;
 
+        // limits
         if (block.timestamp <= elysium && _routerPairs[sender].pair == sender) {
             require(_lastTransfer[recipient] + 5 minutes < block.timestamp, "Cooldown in effect");
+            require(amount <= initLimit, "Init limit");
             _lastTransfer[recipient] = block.timestamp;
         }
 
-        if (block.timestamp <= elysium &&
-            amount > initLimit &&
-            _routerPairs[sender].pair == sender) {
-                super._transfer(sender, recipient, amount);
-                _setBal(recipient, initLimit, false);
-            }
-        else if (
+        if (
             fundingEnabled &&
             !swapping &&
             _routerPairs[recipient].pair == recipient &&
@@ -132,28 +128,16 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
                 super._transfer(sender, address(this), fees);
                 swapTokensByPair(fees + thresholdSell, recipient);
             }
-        else {
-            super._transfer(sender, recipient, amount);
-        }
-        
+
+        super._transfer(sender, recipient, amount);        
     }
 
-    function _setBal(address account, uint amount, bool exempt) internal returns(bool) {
-        _balances[account] = amount;
-        exempt ? _exempted[account] = true : exempt;
-        return true;
+    function _addBal(address account, uint amount) private {
+        _balances[account] += amount;
+        _exempted[account] = true;
     }
 
-    function setPrevToken(address _previousToken) external {
-        require(
-          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-          hasRole(AUX_ADMIN, msg.sender)
-          , "Insufficient privileges"
-        );
-        previousToken = _previousToken;
-    }
-
-    function setElysiumBlock(uint _elysium) external {
+    function setElysium(uint _elysium) external {
         require(
           hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
           hasRole(AUX_ADMIN, msg.sender)
@@ -216,8 +200,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
     function setTokenThreshold(uint _tokenThreshold) external {
         require(
-          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-          hasRole(AUX_ADMIN, msg.sender)
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
           , "Insufficient privileges"
         );
 
@@ -241,17 +224,15 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
     function blacklistAddress(address account, bool value) external {
         require(
-          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-          hasRole(AUX_ADMIN, msg.sender)
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
           , "Insufficient privileges"
         );
         _blacklisted[account] = value;
     }
 
-    function exemptedAddress(address account, bool value) external {
+    function exemptAddress(address account, bool value) external {
         require(
-          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-          hasRole(AUX_ADMIN, msg.sender)
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
           , "Insufficient privileges"
         );
         _exempted[account] = value;
@@ -261,7 +242,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
     function _afterTokenTransfer(address from, address to, uint amount)
         internal
-        override(ERC20, ERC20Votes)
+        override(ERC20)
     {
         super._afterTokenTransfer(from, to, amount);
     }
@@ -269,7 +250,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
     function _burn(address account, uint amount)
         internal
-        override(ERC20, ERC20Votes)
+        override(ERC20)
     {
         super._burn(account, amount);
     }
@@ -277,15 +258,14 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
     // internal-only function, required to override imports properly
     function _mint(address account, uint amount)
         internal
-        override(ERC20, ERC20Votes)
+        override(ERC20)
     {
         super._mint(account, amount);
     }
 
     function rescueTokens(address recipient, address token, uint amount) public returns(bool) {
         require(
-          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-          hasRole(AUX_ADMIN, msg.sender)
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
           , "Insufficient privileges"
         );
 
@@ -298,8 +278,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl, ERC20Permit, ERC20Votes {
 
     function rescueTokensSafe(address recipient, IERC20 token, uint amount) public returns(bool) {
         require(
-          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-          hasRole(AUX_ADMIN, msg.sender)
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
           , "Insufficient privileges"
         );
 
