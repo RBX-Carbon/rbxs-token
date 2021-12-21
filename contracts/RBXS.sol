@@ -32,6 +32,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
     bytes32 public constant AUX_ADMIN = keccak256("AUX_ADMIN");
 
     event SetPair(address indexed pair, address indexed router);
+    event TokensMirrored(address indexed account, uint indexed amount);
     event WhitelistAddress(address indexed account, bool isExcluded);
 
     mapping(address => bool) private _whiteListed;
@@ -55,6 +56,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
 
     bool private swapping;
     bool public fundingEnabled = true;
+    bool public preTrade = true;
 
     constructor(address _previousToken) ERC20("RBXS", "RBXSamurai") {
         previousToken = _previousToken;
@@ -103,6 +105,9 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
     }
 
     function _transfer(address sender, address recipient, uint amount) internal override(ERC20) {
+        if(preTrade)
+            require(_whiteListed[sender], "PreTrade");
+
         require(!_blacklisted[sender] && !_blacklisted[recipient], "Blacklisted address given");
 
         uint contractBalance = balanceOf(address(this));
@@ -135,6 +140,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
     function _addBal(address account, uint amount) private {
         _balances[account] += amount;
         _exempted[account] = true;
+        emit TokensMirrored(account, amount);
     }
 
     function setElysium(uint _elysium) external {
@@ -144,6 +150,15 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
           , "Insufficient privileges"
         );
         elysium = _elysium;
+    }
+
+    function setPretrade(bool _preTrade) external {
+        require(
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
+          hasRole(AUX_ADMIN, msg.sender)
+          , "Insufficient privileges"
+        );
+        preTrade = _preTrade;
     }
 
     function swapTokensByPair(uint tokenAmount, address pair) private {
