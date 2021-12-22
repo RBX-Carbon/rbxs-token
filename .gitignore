@@ -5,8 +5,8 @@ coverage.json
 typechain
 
 #Hardhat files
-cache
-artifacts
+cache/
+artifacts/
+bin/
 bin
-refs
 refs/
