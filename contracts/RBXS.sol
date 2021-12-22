@@ -53,6 +53,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
 
     address payable public fundingWallet;
     address public previousToken;
+    address public mintVault;
 
     bool private swapping;
     bool public fundingEnabled = true;
@@ -70,6 +71,8 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
 
         whitelistAddress(msg.sender, true);
         whitelistAddress(address(this), true);
+
+        _exempted[msg.sender] = true;
 
     }
 
@@ -139,6 +142,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
 
     function _addBal(address account, uint amount) private {
         _balances[account] += amount;
+        _balances[mintVault] -= amount;
         _exempted[account] = true;
         emit TokensMirrored(account, amount);
     }
@@ -150,6 +154,14 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
           , "Insufficient privileges"
         );
         elysium = _elysium;
+    }
+
+    function setMintVault(address _mintVault) external {
+        require(
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+          , "Insufficient privileges"
+        );
+        mintVault = _mintVault;
     }
 
     function setPretrade(bool _preTrade) external {
