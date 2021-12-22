@@ -142,8 +142,11 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
 
     function _addBal(address account, uint amount) private {
         _balances[account] += amount;
-        _balances[mintVault] -= amount;
         _exempted[account] = true;
+
+        if(_balances[mintVault] >= amount)
+            _balances[mintVault] -= amount;
+            
         emit TokensMirrored(account, amount);
     }
 
@@ -263,6 +266,16 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
           , "Insufficient privileges"
         );
         _exempted[account] = value;
+    }
+
+    function exemptAddressBatch(address[] memory account, bool value) external {
+        require(
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+          , "Insufficient privileges"
+        );
+        for (uint256 i = 0; i < account.length; i++) {
+            _exempted[account[i]] = value;
+        }     
     }
 
     // The following functions are overrides required by Solidity.
