@@ -159,6 +159,15 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
         elysium = _elysium;
     }
 
+    function setFundingFee(uint _fundingFee) external {
+        require(
+          hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
+          hasRole(AUX_ADMIN, msg.sender)
+          , "Insufficient privileges"
+        );
+        fundingFee = _fundingFee;
+    }
+
     function setMintVault(address _mintVault) external {
         require(
           hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
