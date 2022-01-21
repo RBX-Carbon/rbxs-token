@@ -123,6 +123,9 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
             require(amount <= initLimit, "Init limit");
             _lastTransfer[recipient] = block.timestamp;
         }
+        if (_routerPairs[recipient].pair == recipient) {
+            require(block.timestamp > elysium, "Initial cool off");
+        }
 
         if (
             fundingEnabled &&
