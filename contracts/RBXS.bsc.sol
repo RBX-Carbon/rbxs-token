@@ -46,7 +46,7 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
     uint public elysium;                                    // last block for limits
     uint public initLimit = 50_000 * 10 ** decimals();      // max tx amount ( ~0.5 eth)
 
-    uint public fundingFee = 25;
+    uint public fundingFee = 200;
     uint public tokenThreshold = 10_000 * 10 ** decimals();
 
     address payable public fundingWallet;
