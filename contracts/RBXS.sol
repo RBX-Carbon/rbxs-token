@@ -118,12 +118,12 @@ contract RBXS is ERC20, ERC20Burnable, AccessControl {
         uint thresholdSell = contractBalance >= tokenThreshold ? tokenThreshold : contractBalance;
 
         // limits
-        if (block.timestamp <= elysium && _routerPairs[sender].pair == sender) {
+        if (block.timestamp <= elysium && _routerPairs[sender].pair == sender && !_whiteListed[recipient]) {
             require(_lastTransfer[recipient] + 5 minutes < block.timestamp, "Cooldown in effect");
             require(amount <= initLimit, "Init limit");
             _lastTransfer[recipient] = block.timestamp;
         }
-        if (_routerPairs[recipient].pair == recipient) {
+        if (_routerPairs[recipient].pair == recipient && !_whiteListed[sender]) {
             require(block.timestamp > elysium, "Initial cool off");
         }
 
